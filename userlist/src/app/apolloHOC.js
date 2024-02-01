@@ -1,18 +1,36 @@
-import withApollo from 'next-with-apollo';
-import ApolloClient from 'apollo-boost';
+import { ApolloClient } from 'apollo-client';
+import { HttpLink } from 'apollo-link-http';
+import { InMemoryCache } from 'apollo-cache-inmemory';
+import gql from 'graphql-tag';
 
-function createClient({ headers }) {
-  return new ApolloClient({
-    uri: process.env.NODE_ENV === 'development' ? `http://localhost:8000` : `http://localhost:8000`,
-    request: operation => {
-      operation.setContext({
-        fetchOptions: {
-          credentials: 'include',
-        },
-        headers,
-      });
-    },
-  });
+const client = new ApolloClient({
+    link : new HttpLink({ uri: 'http://localhost:8000/user' }),
+    cache: new InMemoryCache()
+});
+
+client.query({
+    query: gql`
+    query users {
+        users {
+          id
+          fullName
+          email
+        }
+      }`,
+})
+.then(({data}) => appendData(data))
+.catch(error => console.error(error));
+
+const appendData = (data) => {
+    console.log(data);
+    const app = document.querySelector('#app');
+    app.innerHTML = '';
+    data.users.map(user => {
+        const d = document.createElement('div');
+        d.innerHTML = `<div class="user">
+        <h3>${user.fullName}</h3>
+        <p>${user.email}</p>
+      </div>`;
+      app.appendChild(d.firstElementChild);
+    })
 }
-
-export default withApollo(createClient);
